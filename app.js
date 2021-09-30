@@ -91,7 +91,7 @@ app.put('/taskslists/:tasklistId', (req, res) => {
 })
 
 // partial update
-app.patch('/tasklists/:tasklistId', (req, res) => {
+app.patch('/taskslists/:tasklistId', (req, res) => {
     TaskList.findOneAndUpdate({ _id: req.params.tasklistId}, { $set: req.body})
     .then((tasklist) => {
         res.status(200).send(tasklist);
@@ -102,14 +102,24 @@ app.patch('/tasklists/:tasklistId', (req, res) => {
 });
 
 // Delete a tasklist by id
-app.delete('/tasklists/:tasklistId', (req, res) => {
-    TaskList.findByIdAndDelete(req.params.tasklistId)
-    .then((tasklist) => {
-        res.status(200).send(tasklist);
-    })
-    .catch((error) => {
-        console.log(error);
-    })
+app.delete('/taskslists/:tasklistId', (req, res) => {
+
+    // delete all tasks withing a tasklist if that tasklist is deleted
+    const deleteAllContainingTask = (tasklist) => {
+        Task.deleteMany({_taskListId : req.params.tasklistId})
+            .then(() => {return tasklist})
+            .catch((error) => { console.log(error) });
+    }
+
+    const responseTaskList = TaskList.findByIdAndDelete(req.params.tasklistId)
+        .then((tasklist) => {
+            deleteAllContainingTask(tasklist);
+        })
+        .catch((error) => {
+            console.log(error);
+        })
+
+    res.status(200).send(responseTaskList);
 });
 
 /* CRUD operation for task, a task should always belong to a tasklist */
